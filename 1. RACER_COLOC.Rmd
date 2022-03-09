@@ -1,5 +1,5 @@
 ---
-title: "Regional association plotting of Type 2 Diabetes vs. cardiovascular diseases."
+title: "Regional association plotting of ischemic stroke vs vertigo."
 author: "[Sander W. van der Laan, PhD](https://swvanderlaan.github.io) | @swvanderlaan | s.w.vanderlaan@gmail.com"
 date: "`r Sys.Date()`"
 output:
@@ -41,19 +41,19 @@ pander::panderOptions("table.split.table", Inf)
 # Setup
 We will clean the environment, setup the locations, define colors, and create a datestamp.
 
-_Clean the environment._
+## Clean the environment
 ```{r echo = FALSE}
 rm(list = ls())
 ```
 
-_Set locations and working directories..._
+## Set locations and working directories.
 ```{r LocalSystem, echo = FALSE}
 ### Operating System Version
 ### MacBook Pro
-ROOT_loc = "/Users/swvanderlaan"
+# ROOT_loc = "/Users/swvanderlaan"
 
 ### MacBook Air
-# ROOT_loc = "/Users/slaan3"
+ROOT_loc = "/Users/slaan3"
 
 ### Generic Locations
 GENOMIC_loc = paste0(ROOT_loc, "/OneDrive - UMC Utrecht/Genomics")
@@ -68,10 +68,8 @@ MICHIMP_loc=paste0(PLINK_loc,"/_AE_ORIGINALS/AEGS_COMBINED_EAGLE2_1000Gp3v5HRCr1
 
 GWAS_loc = paste0(PLINK_loc,"/_GWAS_Datasets")
 
-ASCRNA_loc = paste0(STORAGE_loc, "/_AE_ORIGINALS/AESCRNA/prepped_data")
-
-PROJECT_loc = paste0(STORAGE_loc, "/analyses/grants/EFSD2022")
-RESULTS = paste0(STORAGE_loc, "/analyses/grants/EFSD2022")
+PROJECT_loc = paste0(ROOT_loc, "/git/CirculatoryHealth/racer_coloc_tutorial")
+RESULTS = paste0(ROOT_loc, "/git/CirculatoryHealth/racer_coloc_tutorial")
 
 TARGET_loc = paste0(PROJECT_loc, "/targets")
 
@@ -111,13 +109,13 @@ list.files()
 
 ```
 
-_... a package-installation function ..._
+## Package-installation function.
 ```{r}
 source(paste0(PROJECT_loc, "/scripts/functions.R"))
 ```
 
 
-_... and load those packages._
+## Load those packages
 ```{r loading_packages, message=FALSE, warning=FALSE}
 install.packages.auto("readr")
 install.packages.auto("optparse")
@@ -161,8 +159,13 @@ devtools::install_github("thomasp85/patchwork")
 # For regional association plots
 install_github("oliviasabik/RACER") 
 
-# Install ggrepel package if needed
+# install coloc
+if(!require("remotes"))
+   install.packages("remotes") # if necessary
+library(remotes)
+install_github("chr1swallace/coloc@main",build_vignettes=TRUE)
 
+# Install ggrepel package if needed
 library(ggrepel)
 
 # install ggsci
@@ -173,7 +176,9 @@ install.packages.auto("ggsci")
 
 ```
 
-_We will create a datestamp and define the Utrecht Science Park Colour Scheme_.
+## Utrecht Science Park Colour Scheme
+
+We will create a datestamp and define the Utrecht Science Park Colour Scheme
 ```{r Setting: Colors}
 
 Today = format(as.Date(as.POSIXlt(Sys.time())), "%Y%m%d")
@@ -235,11 +240,7 @@ uithof_color_legend = c("#FBB820", "#F59D10", "#E55738", "#DB003F", "#E35493",
 ### ----------------------------------------------------------------------------
 ```
 
-# Introduction
-
-We will parse the data to create regional association plots for each of the 11 loci. 
-
-# Setting the NPG colors
+## Setting the NPG colors
 
 ```{r}
 library("scales")
@@ -250,11 +251,60 @@ show_col(pal_npg("nrc")(10))
 
 ```
 
-# show_col(pal_npg("nrc", alpha = 0.6)(10))
+# Introduction
 
-# Load data
+Vertigo, dizziness, is a symptom that can be caused by a variety of diseases and conditions[add REF1](). These include:
 
-We need to load the data first.
+- benign paroxysmal positional vertigo (BPPV), where certain head movements trigger vertigo
+- migraine, i.e. severe headaches with temporary vision loss and auras
+- labyrinthitis (Lab), an inner ear infection
+- vestibular neuronitis (VN), inflammation of the vestibular nerve, which runs into the inner ear and sends messages to the brain that help to control balance
+- ischemic stroke
+
+Vertigo symptoms and migraine are both associated with increased risk of ischemic stroke[add REF2](). 
+
+An outstanding question remains: whether this is merely an observation confounded by overlapping risk factors, or whether there is a causal link.
+
+Here we set out to investigate the overlap between clinical atherosclerosis (including ischemic stroke subphenotypes, carotid IMT, TIA, and retinal infarction),  BPPV, labyrinthitis, vestibular neuronitis, and migraine.
+
+## Methods
+
+### Summary statistics
+
+We will include genome-wide association study (GWAS) summary statistics from the following sources.
+
+Phenotype                   | Description | Link | Publication
+--------------------------- | --------------------------- | --------------------------- | ---------------------------
+Vertigo                     | includes BPPV, labyrinthitis, and vestibular neuronitis | [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+BPPV                        | Benign paroxysmal positional vertigo[deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+Lab                         | Labyrinthitis[deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+VN                          | Vestibular neuronitis [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+Migraine                    | migraine [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+Carotid IMT (cIMT)          | [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+Ischemic stroke (IS)        | [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+Large artery stroke (LAS)   | [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+Small vessel disease (SVD)  | [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+Cardioembolic stroke (CES)  | [deCODE](https://www.decode.com/summarydata/)  | [Skuladottir, A.T. ea (2021)](https://www.nature.com/articles/s42003-021-02673-2)
+
+### Identification of top loci
+
+Some of these GWAS identified and published top (lead) loci, for others these are not identified and we need the clump these. 
+
+- list top loci from publication
+- clump for the remaining GWAS
+
+
+### Regional association plotting
+
+### Colocalization
+
+### PolarMorphism
+
+# Results
+
+## GWAS SumStats
+
+We need to load and harmonize the data against 1000G phase 3.
 
 ```{r}
 # when we need to load the data
@@ -326,189 +376,21 @@ saveRDS(gwas_t2d_racer, file = paste0(OUT_loc, "/gwas_t2d_racer.rds"))
 ```
 
 ```{r}
-gwas_cad <- readRDS(paste0(OUT_loc, "/gwas_sumstats_cad.rds"))
-gwas_cad_racert <- subset(gwas_cad,
-                              select = c("SNP", "p"))
-rm(gwas_cad)
-gwas_cad_racer <- merge(gwas_cad_racert, ref_1kGp3, by.x = "SNP", by.y = "ID",
-                        all.x = TRUE, sort = FALSE)
-rm(gwas_cad_racert)
-
-saveRDS(gwas_cad_racer, file = paste0(OUT_loc, "/gwas_cad_racer.rds"))
-
-# gwas_cad_racer <- readRDS(paste0(OUT_loc, "/gwas_cad_racer.rds"))
-
-```
-
-```{r}
-gwas_as <- readRDS(paste0(OUT_loc, "/gwas_sumstats_as.rds"))
-gwas_as_racert <- subset(gwas_as,
-                              select = c("SNP", "p"))
-rm(gwas_as)
-gwas_as_racer <- merge(gwas_as_racert, ref_1kGp3, by.x = "SNP", by.y = "ID",
-                        all.x = TRUE, sort = FALSE)
-rm(gwas_as_racert)
-
-saveRDS(gwas_as_racer, file = paste0(OUT_loc, "/gwas_as_racer.rds"))
-
-# gwas_as_racer <- readRDS(paste0(OUT_loc, "/gwas_as_racer.rds"))
-
-```
-
-```{r}
-gwas_cimt <- readRDS(paste0(OUT_loc, "/gwas_sumstats_cimt.rds"))
-gwas_cimt_racert <- subset(gwas_cimt,
-                              select = c("SNP", "p"))
-rm(gwas_cimt)
-gwas_cimt_racer <- merge(gwas_cimt_racert, ref_1kGp3, by.x = "SNP", by.y = "ID",
-                        all.x = TRUE, sort = FALSE)
-rm(gwas_cimt_racert)
-
-saveRDS(gwas_cimt_racer, file = paste0(OUT_loc, "/gwas_cimt_racer.rds"))
-
-# gwas_cimt_racer <- readRDS(paste0(OUT_loc, "/gwas_cimt_racer.rds"))
-
-```
-
-```{r}
 rm(ref_1kGp3)
 ```
 
-# Regional association plotting
-
-## Intersected genes
-
-We are interested in the genes identified in [Slenders et al.](https://academic.oup.com/ehjopen/article/doi/10.1093/ehjopen/oeab043/6472573). 
-
-```{r}
-library(openxlsx)
-target_genes <- read.xlsx(paste0(TARGET_loc, "/20220223_targets.xlsx"))
-
-DT::datatable(target_genes)
-
-```
-
-## Gene-based associated genes
-
-```{r}
-T2Dmagma <- as_tibble(fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/T2D/T2D.magma.genes.out")))
-
-BMImagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/BMI/BMI.magma.genes.out"))
-
-ASmagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/AS/AS.magma.genes.out"))
-ISmagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/IS/IS.magma.genes.out"))
-SVDmagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/SVD/SVD.magma.genes.out"))
-CESmagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/CES/CES.magma.genes.out"))
-LASmagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/LAS/LAS.magma.genes.out"))
-
-CADmagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/CAD/CAD.magma.genes.out"))
-
-cIMTmagma <- fread(paste0(STORAGE_loc, "/_GWAS_Datasets/_magma/cIMT/cIMT.magma.genes.out"))
-
-```
-
-### Extract significant genes
-
-```{r}
-
-p_adj_threshold_t2d = 0.05/nrow(T2Dmagma)
-target_genes_t2d <- unique(subset(T2Dmagma, T2Dmagma$P < p_adj_threshold_t2d, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_t2d)
+## Identification of top loci
 
 
-p_adj_threshold_bmi = 0.05/nrow(BMImagma)
-target_genes_bmi <- unique(subset(BMImagma, BMImagma$P < p_adj_threshold_bmi, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_bmi)
+### Clumping
+
+### Summary of top loci
 
 
-p_adj_threshold_as = 0.05/nrow(ASmagma)
-target_genes_as <- unique(subset(ASmagma, ASmagma$P < p_adj_threshold_as, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_as)
+## Regional association plotting
 
-p_adj_threshold_is = 0.05/nrow(ISmagma)
-target_genes_is <- unique(subset(ISmagma, ISmagma$P < p_adj_threshold_is, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_is)
+We will create regional association plots for all the top loci for future reference.
 
-p_adj_threshold_svd = 0.05/nrow(SVDmagma)
-target_genes_svd <- unique(subset(SVDmagma, SVDmagma$P < p_adj_threshold_svd, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_svd)
-
-p_adj_threshold_ces = 0.05/nrow(CESmagma)
-target_genes_ces <- unique(subset(CESmagma, CESmagma$P < p_adj_threshold_ces, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_ces)
-
-p_adj_threshold_las = 0.05/nrow(LASmagma)
-target_genes_las <- unique(subset(LASmagma, LASmagma$P < p_adj_threshold_las, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_las)
-
-
-p_adj_threshold_cad = 0.05/nrow(CADmagma)
-target_genes_cad <- unique(subset(CADmagma, CADmagma$P < p_adj_threshold_cad, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_cad)
-
-
-p_adj_threshold_cimt = 0.05/nrow(cIMTmagma)
-target_genes_cimt <- unique(subset(cIMTmagma, cIMTmagma$P < p_adj_threshold_cimt, select = c("SYMBOL"))$SYMBOL)
-length(target_genes_cimt)
-
-```
-
-### Overlap between diseases
-
-What is the 1-to-1 overlap between diseases?
-
-```{r}
-t2d_vs_bmi <- match(target_genes_t2d, target_genes_bmi)
-
-t2d_vs_as <- match(target_genes_t2d, target_genes_as)
-t2d_vs_is <- match(target_genes_t2d, target_genes_is)
-t2d_vs_svd <- match(target_genes_t2d, target_genes_svd)
-t2d_vs_las <- match(target_genes_t2d, target_genes_las)
-t2d_vs_ces <- match(target_genes_t2d, target_genes_ces)
-
-t2d_vs_cad <- match(target_genes_t2d, target_genes_cad)
-t2d_vs_cimt <- match(target_genes_t2d, target_genes_cimt)
-
-
-cat("*T2D vs BMI (positive control)\n")
-target_genes_t2d[!is.na(t2d_vs_bmi)]
-targets_t2d_vs_bmi <- target_genes_t2d[!is.na(t2d_vs_bmi)]
-
-cat("*T2D vs all stroke\n")
-target_genes_t2d[!is.na(t2d_vs_as)]
-targets_t2d_vs_as <- target_genes_t2d[!is.na(t2d_vs_as)]
-
-cat("*T2D vs ischemic stroke\n")
-target_genes_t2d[!is.na(t2d_vs_is)]
-targets_t2d_vs_is <- target_genes_t2d[!is.na(t2d_vs_is)]
-
-cat("*T2D vs small vessel disease\n")
-target_genes_t2d[!is.na(t2d_vs_svd)]
-targets_t2d_vs_svd <- target_genes_t2d[!is.na(t2d_vs_svd)]
-
-cat("*T2D vs large artery stroke\n")
-target_genes_t2d[!is.na(t2d_vs_las)]
-targets_t2d_vs_las <- target_genes_t2d[!is.na(t2d_vs_las)]
-
-cat("*T2D vs cardioembolic stroke\n")
-target_genes_t2d[!is.na(t2d_vs_ces)]
-targets_t2d_vs_ces <- target_genes_t2d[!is.na(t2d_vs_ces)]
-
-cat("*T2D vs CAD\n")
-target_genes_t2d[!is.na(t2d_vs_cad)]
-targets_t2d_vs_cad <- target_genes_t2d[!is.na(t2d_vs_cad)]
-
-cat("*T2D vs carotid IMT\n")
-target_genes_t2d[!is.na(t2d_vs_cimt)]
-targets_t2d_vs_cimt <- target_genes_t2d[!is.na(t2d_vs_cimt)]
-
-rm(t2d_vs_bmi, t2d_vs_as, t2d_vs_is, t2d_vs_svd,  t2d_vs_las, t2d_vs_ces, t2d_vs_cad, t2d_vs_cimt)
-
-```
-
-
-
-### T2D vs AS
 ```{r}
 library(RACER)
 
@@ -576,13 +458,8 @@ for(GENE in targets_t2d_vs_as){
 ```
 
 
-### T2D vs cIMT
+## Colocalization
 
-We are interested in those genes expressed in monocytes or macrophages, endothelial (ECs) and smooth muscle cells (SMCs). After inspection of the single-cell expression profiles, we identified the following genes for cIMT:
-
-- _SOX7_ --> ECs - we use `ENSG00000171056` 
-- _BLK_ --> monocytes - `ENSG00000136573`
-- _PPP1R3B_ --> SMCs - `ENSG00000173281`
 
 
 ```{r}
@@ -594,81 +471,12 @@ ifelse(!dir.exists(file.path(PROJECT_loc, "/RACER")),
        FALSE)
 RACER_loc = paste0(PROJECT_loc,"/RACER")
 
-ifelse(!dir.exists(file.path(RACER_loc, "/CIMT")), 
-       dir.create(file.path(RACER_loc, "/CIMT")), 
+ifelse(!dir.exists(file.path(RACER_loc, "/AS")), 
+       dir.create(file.path(RACER_loc, "/AS")), 
        FALSE)
-CIMT_RACER_loc = paste0(RACER_loc,"/CIMT")
+AS_RACER_loc = paste0(RACER_loc,"/AS")
 
-# targets_t2d_vs_cimt_short <- c("SOX7", "BLK", "PPP1R3B") 
-targets_t2d_vs_cimt_short <- c("ENSG00000171056", "ENSG00000136573", "ENSG00000173281") 
-
-# source(paste0(PROJECT_loc, "/scripts/functions.R"))
-for(GENE in targets_t2d_vs_cimt_short){
-  cat(paste0("Getting data for ", GENE,".\n"))
-  target=GENE
-  tempCHR <- subset(T2Dmagma, GENE == target)$CHR
-  tempSTART <- subset(T2Dmagma, GENE == target)$START
-  tempEND <- subset(T2Dmagma, GENE == target)$STOP
-  tempENSEMBLnr <- subset(T2Dmagma, GENE == target)$SYMBOL
-
-  cat("\nSubset required data.\n")
-  temp <- subset(gwas_t2d_racer, CHROM == tempCHR & (POS >= tempSTART & POS <= tempEND))
-  temp_cimt <- subset(gwas_cimt_racer, CHROM == tempCHR & (POS >= tempSTART & POS <= tempEND))
-  
-  temp$CHROM <- as.numeric(temp$CHROM)
-  temp$POS <- as.numeric(temp$POS)
-  temp$p <- as.numeric(temp$p)
-  
-  cat("\nFormatting association data.\n")
-  temp_f = RACER::formatRACER(assoc_data = temp, chr_col = 3, pos_col = 4, p_col = 2)
-  temp_cimt_f = RACER::formatRACER(assoc_data = temp_cimt, chr_col = 3, pos_col = 4, p_col = 2)
-
-  cat("\nGetting LD data.\n")
-  temp_f_ld = RACER::ldRACER(assoc_data = temp_f, rs_col = 1, pops = "EUR", auto_snp = TRUE)
-  temp_cimt_f_ld = RACER::ldRACER(assoc_data = temp_cimt_f, rs_col = 1, pops = "EUR", auto_snp = TRUE)
-  # print(head(temp_cimt_f_ld))
-  cat(paste0("\nPlotting region surrounding ", GENE," on ",tempCHR,":",tempSTART,"-",tempEND,".\n"))
-  p1 <- mirrorPlotRACER(assoc_data1 = temp_f_ld, 
-                        assoc_data2 = temp_cimt_f_ld, chr = tempCHR, 
-                        plotby = "coord", start_plot = tempSTART, end_plot = tempEND,
-                        name1 = "Type 2 Diabetes",
-                        name2 = "Carotid intima-media thickness", 
-                        label_lead = TRUE) 
-
-  print(p1 )
-  cat(paste0("Saving image for ", GENE,".\n"))
-  ggsave(filename = paste0(CIMT_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_cimt.png"), plot = last_plot())
-  # ggsave(filename = paste0(CIMT_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_cimt.pdf"), plot = last_plot())
-  # ggsave(filename = paste0(CIMT_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_cimt.eps"), plot = last_plot())
-
-  rm(temp, p1,
-     temp_f, temp_f_ld,
-     tempCHR, tempSTART, tempEND,
-     tempENSEMBLnr,
-     temp_cimt, temp_cimt_f, temp_cimt_f_ld,
-     GENE)
-  
-}
-```
-
-
-### T2D vs CAD
-
-```{r}
-library(RACER)
-
-# Make directory for plots
-ifelse(!dir.exists(file.path(PROJECT_loc, "/RACER")), 
-       dir.create(file.path(PROJECT_loc, "/RACER")), 
-       FALSE)
-RACER_loc = paste0(PROJECT_loc,"/RACER")
-
-ifelse(!dir.exists(file.path(RACER_loc, "/CAD")), 
-       dir.create(file.path(RACER_loc, "/CAD")), 
-       FALSE)
-CAD_RACER_loc = paste0(RACER_loc,"/CAD")
-
-for(GENE in targets_t2d_vs_cad){
+for(GENE in targets_t2d_vs_as){
   cat(paste0("Getting data for ", GENE,".\n"))
   target=GENE
   tempCHR <- subset(T2Dmagma, SYMBOL == target)$CHR
@@ -678,57 +486,60 @@ for(GENE in targets_t2d_vs_cad){
 
   cat("\nSubset required data.\n")
   temp <- subset(gwas_t2d_racer, CHROM == tempCHR & (POS >= tempSTART & POS <= tempEND))
-  temp_cad <- subset(gwas_cad_racer, CHROM == tempCHR & (POS >= tempSTART & POS <= tempEND))
-
+  temp_as <- subset(gwas_as_racer, CHROM == tempCHR & (POS >= tempSTART & POS <= tempEND))
+  
   temp$CHROM <- as.numeric(temp$CHROM)
   temp$POS <- as.numeric(temp$POS)
   temp$p <- as.numeric(temp$p)
   
   cat("\nFormatting association data.\n")
   temp_f = RACER::formatRACER(assoc_data = temp, chr_col = 3, pos_col = 4, p_col = 2)
-  temp_cad_f = RACER::formatRACER(assoc_data = temp_cad, chr_col = 3, pos_col = 4, p_col = 2)
+  temp_as_f = RACER::formatRACER(assoc_data = temp_as, chr_col = 3, pos_col = 4, p_col = 2)
 
   cat("\nGetting LD data.\n")
   temp_f_ld = RACER::ldRACER(assoc_data = temp_f, rs_col = 1, pops = "EUR", auto_snp = TRUE)
-  temp_cad_f_ld = RACER::ldRACER(assoc_data = temp_cad_f, rs_col = 1, pops = "EUR", auto_snp = TRUE)
+  lead_variant <- subset(temp_f_ld, LABEL == "LEAD")$RS_ID
+  
+  temp_as_f_ld = RACER::ldRACER(assoc_data = temp_as_f, rs_col = 1, pops = "EUR", lead_snp = lead_variant)
 
   cat(paste0("\nPlotting region surrounding ", GENE," on ",tempCHR,":",tempSTART,"-",tempEND,".\n"))
-  source(paste0(PROJECT_loc, "/scripts/functions.R"))
+  
   p1 <- mirrorPlotRACER(assoc_data1 = temp_f_ld, 
-                        assoc_data2 = temp_cad_f_ld, chr = tempCHR, 
+                        assoc_data2 = temp_as_f_ld, chr = tempCHR, 
                         plotby = "coord", start_plot = tempSTART, end_plot = tempEND,
+                        # name1 = paste0("Type 2 Diabetes (", lead_variant,")"),
                         name1 = "Type 2 Diabetes",
-                        name2 = "Coronary artery disease", 
+                        name2 = "All stroke", 
                         label_lead = TRUE) 
 
   print(p1 )
   cat(paste0("Saving image for ", GENE,".\n"))
-  ggsave(filename = paste0(CAD_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_cad.png"), plot = last_plot())
-  # ggsave(filename = paste0(CAD_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_cad.pdf"), plot = last_plot())
-  # ggsave(filename = paste0(CAD_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_cad.eps"), plot = last_plot())
+  ggsave(filename = paste0(AS_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_as.png"), plot = last_plot())
+  ggsave(filename = paste0(AS_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_as.pdf"), plot = last_plot())
+  ggsave(filename = paste0(AS_RACER_loc, "/", tempENSEMBLnr, ".", Today, ".",GENE,".regional_assoc.t2d_vs_as.eps"), plot = last_plot())
 
-  rm(temp, p1, 
-     temp_f, temp_f_ld,
-     tempCHR, tempSTART, tempEND,
-     tempENSEMBLnr,
-     temp_cad, temp_cad_f, temp_cad_f_ld,
-     GENE)
+  # rm(temp, p1, 
+  #    temp_f, temp_f_ld,
+  #    tempCHR, tempSTART, tempEND,
+  #    tempENSEMBLnr,
+  #    temp_as, temp_as_f, temp_as_f_ld,
+  #    GENE)
   
 }
-
-
 ```
 
+## PolarMorphism
 
+# Discussion and Conclusions
 
 # Session information
 
 ------
 
     Version:      v1.0.0
-    Last update:  2022-02-28
+    Last update:  2022-03-08
     Written by:   Sander W. van der Laan (s.w.vanderlaan-2[at]umcutrecht.nl).
-    Description:  Script to create plot regional association plots.
+    Description:  Script to create plot regional association plots, coloc and Polarmorphism.
     Minimum requirements: R version 3.4.3 (2017-06-30) -- 'Single Candle', Mac OS X El Capitan
     
     Changes log
@@ -744,7 +555,7 @@ sessionInfo()
 # Saving environment
 ```{r Saving}
 
-save.image(paste0(PROJECT_loc, "/",Today,".",PROJECTNAME,".RegionalAssociationPlots.RData"))
+save.image(paste0(PROJECT_loc, "/",Today,".",PROJECTNAME,".RACER_COLOC.RData"))
 ```
 
 
